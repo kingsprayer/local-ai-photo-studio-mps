@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SAADAA — Local AI Product Photo Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-display: 'Cinzel', serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      /* Dark Palette */
+      --bg-base: #0c0d10;
+      --bg-surface: #14161b;
+      --bg-card: rgba(26, 29, 36, 0.75);
+      --bg-card-hover: rgba(33, 37, 46, 0.9);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-active: rgba(230, 126, 34, 0.45);
+      --text-main: #f5f3ef;
+      --text-muted: #9e9ba7;
+      --text-dim: #64636d;
+
+      /* Brand Accents */
+      --brand-accent: #e67e22;
+      --brand-accent-glow: rgba(230, 126, 34, 0.25);
+      --brand-ivory: #f8f6f0;
+      --brand-terracotta: #c26d53;
+      --brand-sand: #e2d6c4;
+      --brand-olive: #8f957e;
+      --brand-indigo: #2c3e50;
+
+      /* UI Tokens */
+      --status-pass: #2ecc71;
+      --status-warn: #f1c40f;
+      --status-fail: #e74c3c;
+      --status-info: #3498db;
+      --glass-blur: blur(16px);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --transition-smooth: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="light"] {
+      --bg-base: #f9f8f5;
+      --bg-surface: #f1ede6;
+      --bg-card: rgba(255, 255, 255, 0.85);
+      --bg-card-hover: rgba(255, 255, 255, 0.98);
+      --border-subtle: rgba(0, 0, 0, 0.08);
+      --border-active: rgba(194, 109, 83, 0.5);
+      --text-main: #1f1d1a;
+      --text-muted: #6e6b66;
+      --text-dim: #9c9994;
+      --brand-accent: #c26d53;
+      --brand-accent-glow: rgba(194, 109, 83, 0.2);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+      letter-spacing: -0.01em;
+    }
+
+    /* Ambient background gradient */
+    .ambient-glow {
+      position: fixed;
+      top: -15vw;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 70vw;
+      height: 35vw;
+      background: radial-gradient(circle, rgba(230, 126, 34, 0.07) 0%, rgba(194, 109, 83, 0.03) 50%, transparent 80%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Top App Navigation */
+    header.app-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      background: rgba(12, 13, 16, 0.82);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0.85rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    [data-theme="light"] header.app-header {
+      background: rgba(249, 248, 245, 0.88);
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+    }
+    .brand-title {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      color: var(--text-main);
+      text-transform: uppercase;
+      line-height: 1;
+    }
+    .brand-tagline {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-left: 1px solid var(--border-subtle);
+      padding-left: 1rem;
+    }
+
+    /* Navigation Tabs with sliding indicator */
+    .nav-tabs-wrapper {
+      position: relative;
+      display: flex;
+      background: var(--bg-surface);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+    }
+    .nav-tab-btn {
+      position: relative;
+      z-index: 2;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.45rem 1.15rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+    .nav-tab-btn.active {
+      color: var(--text-main);
+    }
+    .nav-slider {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      bottom: 4px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      transition: var(--transition-smooth);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      color: var(--text-muted);
+    }
+    .dot-indicator {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--status-pass);
+      box-shadow: 0 0 8px var(--status-pass);
+    }
+    .dot-indicator.warn { background: var(--status-warn); box-shadow: 0 0 8px var(--status-warn); }
+
+    .theme-toggle-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 0.45rem 0.65rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 1rem;
+      transition: var(--transition-smooth);
+    }
+    .theme-toggle-btn:hover {
+      color: var(--text-main);
+      border-color: var(--border-active);
+    }
+
+    /* Main Container */
+    main.app-main {
+      position: relative;
+      z-index: 1;
+      max-width: 1720px;
+      margin: 0 auto;
+      padding: 1.8rem 2rem 4rem;
+    }
+
+    .tab-content-panel {
+      display: none;
+      animation: fadeInStagger 0.4s ease forwards;
+    }
+    .tab-content-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeInStagger {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Grid Layout for Studio */
+    .studio-grid {
+      display: grid;
+      grid-template-columns: 360px 480px 1fr;
+      gap: 1.6rem;
+      align-items: start;
+    }
+
+    @media (max-width: 1400px) {
+      .studio-grid { grid-template-columns: 340px 1fr; }
+      .studio-grid .preview-column { grid-column: span 2; }
+    }
+    @media (max-width: 900px) {
+      .studio-grid { grid-template-columns: 1fr; }
+      .studio-grid .preview-column { grid-column: span 1; }
+    }
+
+    /* Card Panels */
+    .card-panel {
+      background: var(--bg-card);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.4rem;
+      margin-bottom: 1.4rem;
+      transition: var(--transition-smooth);
+      position: relative;
+      overflow: hidden;
+    }
+    .card-panel:hover {
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+    }
+    .card-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      padding-bottom: 0.6rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .card-panel-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Upload Drop Zone */
+    .dropzone-box {
+      border: 2px dashed var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 2rem 1.2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      background: rgba(0, 0, 0, 0.15);
+      position: relative;
+    }
+    .dropzone-box:hover, .dropzone-box.dragover {
+      border-color: var(--brand-accent);
+      background: rgba(230, 126, 34, 0.05);
+    }
+    .dropzone-icon {
+      font-size: 2.2rem;
+      margin-bottom: 0.6rem;
+      color: var(--brand-accent);
+    }
+    .dropzone-text {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+    .dropzone-hint {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+
+    .preview-box-thumb {
+      width: 100%;
+      height: 260px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: #000;
+      position: relative;
+      display: none;
+      margin-top: 1rem;
+      border: 1px solid var(--border-subtle);
+    }
+    .preview-box-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .preview-matte-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      padding: 0.6rem 0.8rem;
+      font-size: 0.86rem;
+      font-family: inherit;
+      transition: var(--transition-smooth);
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--brand-accent);
+      box-shadow: 0 0 0 3px var(--brand-accent-glow);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.8rem;
+    }
+
+    /* Mode Selection Tiles */
+    .mode-tiles-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.6rem;
+      margin-bottom: 1.2rem;
+    }
+    .mode-tile-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1rem 0.6rem;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      position: relative;
+    }
+    .mode-tile-btn:hover:not(.locked) {
+      border-color: var(--border-active);
+      transform: translateY(-2px);
+    }
+    .mode-tile-btn.active {
+      background: var(--brand-accent-glow);
+      border-color: var(--brand-accent);
+    }
+    .mode-tile-btn.locked {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .mode-tile-icon { font-size: 1.5rem; margin-bottom: 0.3rem; }
+    .mode-tile-name { font-size: 0.84rem; font-weight: 700; color: var(--text-main); }
+    .mode-tile-sub { font-size: 0.68rem; color: var(--text-dim); margin-top: 2px; }
+
+    /* Channel Checkboxes */
+    .channels-selector-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-bottom: 1.2rem;
+    }
+    .channel-checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      padding: 0.55rem 0.8rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+    .channel-checkbox-item:hover {
+      border-color: rgba(255,255,255,0.15);
+    }
+    .channel-checkbox-item input[type="checkbox"] {
+      accent-color: var(--brand-accent);
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+    }
+    .channel-info-text {
+      flex: 1;
+    }
+    .channel-name { font-size: 0.82rem; font-weight: 600; color: var(--text-main); }
+    .channel-dims { font-size: 0.68rem; color: var(--text-muted); font-family: var(--font-mono); }
+
+    /* Action CTA Buttons */
+    .cta-btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-terracotta) 100%);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 0.95rem 1.4rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      box-shadow: 0 8px 24px var(--brand-accent-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+    }
+    .cta-btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(230, 126, 34, 0.4);
+    }
+    .cta-btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      border-radius: var(--radius-sm);
+      padding: 0.5rem 0.9rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .btn-secondary:hover {
+      border-color: var(--border-active);
+      color: var(--brand-accent);
+    }
+
+    /* Live Progress Bar & Log Terminal */
+    .progress-box {
+      margin-bottom: 1.2rem;
+    }
+    .progress-bar-track {
+      width: 100%;
+      height: 8px;
+      background: var(--bg-surface);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--brand-accent), #f39c12);
+      transition: width 0.3s ease;
+    }
+    .progress-status-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .log-terminal {
+      background: #090a0d;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.8rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      color: #b3b0ba;
+      height: 120px;
+      overflow-y: auto;
+      line-height: 1.6;
+      margin-bottom: 1.2rem;
+    }
+    .log-terminal .log-line {
+      margin-bottom: 2px;
+      white-space: pre-wrap;
+    }
+    .log-terminal .log-line.hl { color: var(--brand-accent); }
+    .log-terminal .log-line.succ { color: var(--status-pass); }
+
+    /* Preview Display Stage */
+    .preview-stage-container {
+      position: relative;
+      background: #000;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+      min-height: 520px;
+      display: flex;
+      flex-direction: column;
+    }
+    .preview-channel-tabs {
+      display: flex;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      overflow-x: auto;
+      padding: 4px 6px;
+      gap: 4px;
+    }
+    .preview-ch-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 0.35rem 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: var(--transition-smooth);
+    }
+    .preview-ch-tab-btn.active {
+      background: var(--bg-card);
+      color: var(--text-main);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .preview-main-view {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      position: relative;
+      min-height: 440px;
+    }
+    .preview-main-view img {
+      max-width: 100%;
+      max-height: 560px;
+      object-fit: contain;
+      border-radius: 6px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+      animation: blurIn 0.35s ease forwards;
+    }
+    @keyframes blurIn {
+      from { filter: blur(8px); opacity: 0; }
+      to { filter: blur(0); opacity: 1; }
+    }
+
+    /* Marketplace Compliance Badge Overlay */
+    .compliance-audit-card {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-subtle);
+      padding: 1rem 1.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .compliance-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.3rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    .compliance-pill.pass { background: rgba(46, 204, 113, 0.15); color: var(--status-pass); border: 1px solid rgba(46, 204, 113, 0.3); }
+    .compliance-pill.warn { background: rgba(241, 196, 15, 0.15); color: var(--status-warn); border: 1px solid rgba(241, 196, 15, 0.3); }
+
+    .fidelity-meter {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+    .fidelity-meter span {
+      color: var(--status-pass);
+      font-weight: 700;
+    }
+
+    /* 3D Pose Studio Layout */
+    .pose-studio-wrapper {
+      display: grid;
+      grid-template-columns: 560px 1fr;
+      gap: 1.8rem;
+      align-items: start;
+    }
+    #pose-viewport {
+      width: 100%;
+      height: 720px;
+      background: #0f1014;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+      position: relative;
+    }
+    .pose-controls-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.6rem;
+    }
+    .pose-presets-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1.4rem;
+    }
+    .pose-preset-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      padding: 0.6rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      text-align: center;
+    }
+    .pose-preset-btn:hover {
+      border-color: var(--brand-accent);
+      color: var(--brand-accent);
+    }
+
+    /* Library Gallery Grid */
+    .library-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.4rem;
+    }
+    .library-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      transition: var(--transition-smooth);
+    }
+    .library-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.3);
+      border-color: var(--border-active);
+    }
+    .library-card-thumb {
+      width: 100%;
+      height: 340px;
+      background: #090a0d;
+      overflow: hidden;
+      position: relative;
+    }
+    .library-card-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+    .library-card:hover .library-card-thumb img {
+      transform: scale(1.03);
+    }
+    .library-card-body {
+      padding: 1rem;
+    }
+    .library-sku-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.2rem;
+    }
+    .library-meta-sub {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-bottom: 0.8rem;
+    }
+    .library-card-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    /* Toast Notification */
+    .toast-box {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: rgba(20, 22, 27, 0.92);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      padding: 0.8rem 1.4rem;
+      border-radius: var(--radius-md);
+      font-size: 0.86rem;
+      font-weight: 600;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+      z-index: 1000;
+      display: none;
+      animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes toastIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Shimmer animation */
+    .shimmer {
+      background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+      background-size: 200% 100%;
+      animation: shimmerMove 1.6s infinite;
+    }
+    @keyframes shimmerMove {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    /* Responsive adjustments */
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient-glow"></div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="brand-block">
+      <div class="brand-title">SAADAA</div>
+      <div class="brand-tagline">AI Product Photo Studio · 100% Local (MPS)</div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs-wrapper">
+      <div class="nav-slider" id="nav-slider"></div>
+      <button class="nav-tab-btn active" data-tab="studio">Studio</button>
+      <button class="nav-tab-btn" data-tab="pose-studio">3D Pose</button>
+      <button class="nav-tab-btn" data-tab="batch">Batch Queue</button>
+      <button class="nav-tab-btn" data-tab="library">Library</button>
+      <button class="nav-tab-btn" data-tab="style-guide">Style Guide</button>
+      <button class="nav-tab-btn" data-tab="instagram" style="border: 1px solid rgba(221,42,123,0.45); background: linear-gradient(135deg, rgba(245,133,41,0.15), rgba(221,42,123,0.15)); font-weight: 600;">✨ Instagram Studio</button>
+      <button class="nav-tab-btn" data-tab="lifestyle" style="border: 1px solid rgba(212,175,55,0.45); background: linear-gradient(135deg, rgba(212,175,55,0.15), rgba(184,134,11,0.15)); font-weight: 600; color: #e6ca65;">📸 4K Lifestyle Studio</button>
+    </div>
+
+    <div class="header-right">
+      <div class="pill-badge" id="system-status-pill">
+        <span class="dot-indicator"></span>
+        <span id="system-status-text">Apple Silicon MPS · Ready</span>
+      </div>
+      <button class="theme-toggle-btn" id="btn-theme-toggle" title="Toggle Light/Dark Theme">🌓</button>
+    </div>
+  </header>
+
+  <!-- Main Views -->
+  <main class="app-main">
+    
+    <!-- 1. STUDIO TAB -->
+    <div class="tab-content-panel active" id="tab-studio">
+      <div class="studio-grid">
+        
+        <!-- Left Column: Image Upload & Attributes -->
+        <div class="studio-left-column">
+          <!-- Upload Box -->
+          <div class="card-panel">
+            <div class="card-panel-header">
+              <span class="card-panel-title">1. Source Apparel Photo</span>
+              <span class="pill-badge" id="upload-status-badge">Ready</span>
+            </div>
+            
+            <div class="dropzone-box" id="studio-dropzone">
+              <input type="file" id="file-input-studio" accept="image/*" style="display: none;">
+              <div class="dropzone-icon">📷</div>
+              <div class="dropzone-text">Drop apparel photo or click to browse</div>
+              <div class="dropzone-hint">On-model, ghost mannequin, or flat lay</div>
+            </div>
+
+            <div class="preview-box-thumb" id="preview-box-thumb">
+              <img id="source-preview-img" src="" alt="Source Preview">
+              <span class="preview-matte-badge">BiRefNet Ready</span>
+            </div>
+          </div>
+
+          <!-- Product Attributes (Extracted via Gemma 3 4B) -->
+          <div class="card-panel">
+            <div class="card-panel-header">
+              <span class="card-panel-title">2. AI Vision Attributes</span>
+              <button class="btn-secondary" id="btn-extract-attrs">⚡ Extract (Ollama)</button>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Category</label>
+                <input type="text" class="form-input" id="attr-category" placeholder="Kurta, Shirt, Dress...">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Colour</label>
+                <input type="text" class="form-input" id="attr-colour" placeholder="Warm Ivory, Indigo...">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Fabric</label>
+                <input type="text" class="form-input" id="attr-fabric" placeholder="Pure Linen, Slub Cotton...">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fit</label>
+                <input type="text" class="form-input" id="attr-fit" placeholder="Relaxed Fit, Tailored...">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Neckline & Sleeves</label>
+              <input type="text" class="form-input" id="attr-neckline" placeholder="Mandarin Collar, Full Sleeves">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Garment Details</label>
+              <input type="text" class="form-input" id="attr-details" placeholder="Organic wood buttons, front placket">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">SEO Product Title</label>
+              <input type="text" class="form-input" id="attr-seo-title" placeholder="SAADAA Relaxed Pure Linen Mandarin Collar Kurta">
+            </div>
+          </div>
+        </div>
+
+        <!-- Middle Column: Mode & Staging Controls -->
+        <div class="studio-middle-column">
+          <!-- Generation Mode Selection -->
+          <div class="card-panel">
+            <div class="card-panel-header">
+              <span class="card-panel-title">3. Generation Mode</span>
+            </div>
+
+            <div class="mode-tiles-grid">
+              <div class="mode-tile-btn active" data-mode="packshot" id="tile-mode-packshot">
+                <div class="mode-tile-icon">⚪</div>
+                <div class="mode-tile-name">Packshot</div>
+                <div class="mode-tile-sub">Pure White RGB 255</div>
+              </div>
+              <div class="mode-tile-btn" data-mode="scene" id="tile-mode-scene">
+                <div class="mode-tile-icon">🏛️</div>
+                <div class="mode-tile-name">Scene</div>
+                <div class="mode-tile-sub">Kept Pixel-Exact</div>
+              </div>
+              <div class="mode-tile-btn" data-mode="model" id="tile-mode-model">
+                <div class="mode-tile-icon">👤</div>
+                <div class="mode-tile-name">Model</div>
+                <div class="mode-tile-sub">New Model & Pose</div>
+              </div>
+            </div>
+
+            <!-- Keep Garment Options (for Model Mode) -->
+            <div class="form-group" id="group-keep-mode" style="display: none;">
+              <label class="form-label">Garment Region to Protect (100% Fidelity)</label>
+              <select class="form-select" id="select-keep-mode">
+                <option value="upper" selected>Keep Upper Body Garment (Top / Kurta / Shirt)</option>
+                <option value="lower">Keep Lower Garment (Trousers / Skirt)</option>
+                <option value="dress">Keep Dress / One-Piece / Full Kurta Set</option>
+                <option value="all">Keep Entire Outfit (Upper + Lower)</option>
+                <option value="shoes">Keep Outfit + Original Footwear</option>
+              </select>
+            </div>
+
+            <!-- Scene Preset or Custom -->
+            <div class="form-group" id="group-scene-preset" style="display: none;">
+              <label class="form-label">Lifestyle Architectural Scene</label>
+              <select class="form-select" id="select-scene-key">
+                <option value="minimal_studio">Minimalist Warm Studio (Limestone Cyclorama)</option>
+                <option value="architectural_courtyard">Modern Architectural Courtyard (Sandstone Colonnade)</option>
+                <option value="sunlit_loft">Sunlit Urban Loft (Airy Linen Curtains)</option>
+                <option value="colonial_verandah">Heritage Verandah (Whitewashed Arches & Tiles)</option>
+                <option value="gallery_space">Contemporary Art Gallery (Museum Skylight)</option>
+                <option value="custom">Custom Architectural Prompt...</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="group-custom-scene" style="display: none;">
+              <label class="form-label">Custom Scene Description</label>
+              <input type="text" class="form-input" id="input-custom-scene" placeholder="Describe architectural setting, walls, light...">
+            </div>
+
+            <!-- Background Mode (Exact vs Inspiration) -->
+            <div class="form-group" id="group-bg-mode" style="display: none;">
+              <label class="form-label">Background Source</label>
+              <select class="form-select" id="select-bg-mode">
+                <option value="new" selected>Generate Brand Style Guide Scene</option>
+                <option value="exact">Use Uploaded Background Exactly (Pixel-Identical Outside Subject)</option>
+                <option value="inspiration">Use Uploaded Background as Inspiration (Re-rendered Lighting)</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="group-upload-bg" style="display: none;">
+              <label class="form-label">Upload Custom Background Photo</label>
+              <input type="file" id="file-input-bg" accept="image/*" class="form-input">
+            </div>
+
+            <!-- Pose Preset or Custom Pose Studio -->
+            <div class="form-row" id="group-model-options" style="display: none;">
+              <div class="form-group">
+                <label class="form-label">Model Cast</label>
+                <select class="form-select" id="select-model-gender">
+                  <option value="women" selected>Contemporary Indian Woman</option>
+                  <option value="men">Contemporary Indian Man</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Pose Stance</label>
+                <select class="form-select" id="select-pose-preset">
+                  <option value="stand_relaxed" selected>Relaxed Standing Stance</option>
+                  <option value="hand_on_hip">Hand on Hip Editorial</option>
+                  <option value="hands_in_pockets">Hands in Pockets</option>
+                  <option value="walking_stride">Natural Walking Motion</option>
+                  <option value="seated_teak">Seated on Teak Bench</option>
+                  <option value="look_back">Look Back Over Shoulder</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Quality Preset -->
+            <div class="form-group">
+              <label class="form-label">Quality Preset</label>
+              <select class="form-select" id="select-quality-preset">
+                <option value="draft">⚡ Draft (~1.5 min · 8 steps · SDXL-Lightning LoRA)</option>
+                <option value="standard" selected>✨ Standard (25 steps + Real-ESRGAN x4plus to exact size)</option>
+                <option value="best">👑 Best (30 steps + Real-ESRGAN + 1024px Face/Hand Detail Pass)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Target Marketplace Channels -->
+          <div class="card-panel">
+            <div class="card-panel-header">
+              <span class="card-panel-title">4. Target Marketplace Formats</span>
+            </div>
+
+            <div class="channels-selector-grid">
+              <label class="channel-checkbox-item">
+                <input type="checkbox" name="ch" value="amazon" checked>
+                <div class="channel-info-text">
+                  <div class="channel-name">Amazon Main</div>
+                  <div class="channel-dims">2000 × 2000 (1:1)</div>
+                </div>
+              </label>
+
+              <label class="channel-checkbox-item">
+                <input type="checkbox" name="ch" value="myntra" checked>
+                <div class="channel-info-text">
+                  <div class="channel-name">Myntra Fashion</div>
+                  <div class="channel-dims">1080 × 1440 (3:4)</div>
+                </div>
+              </label>
+
+              <label class="channel-checkbox-item">
+                <input type="checkbox" name="ch" value="shopify" checked>
+                <div class="channel-info-text">
+                  <div class="channel-name">Shopify D2C</div>
+                  <div class="channel-dims">1536 × 2048 (3:4)</div>
+                </div>
+              </label>
+
+              <label class="channel-checkbox-item">
+                <input type="checkbox" name="ch" value="google">
+                <div class="channel-info-text">
+                  <div class="channel-name">Google Shopping</div>
+                  <div class="channel-dims">1500 × 1500 (1:1)</div>
+                </div>
+              </label>
+
+              <label class="channel-checkbox-item">
+                <input type="checkbox" name="ch" value="instagram_post">
+                <div class="channel-info-text">
+                  <div class="channel-name">Instagram Post</div>
+                  <div class="channel-dims">1080 × 1350 (4:5)</div>
+                </div>
+              </label>
+
+              <label class="channel-checkbox-item">
+                <input type="checkbox" name="ch" value="instagram_story">
+                <div class="channel-info-text">
+                  <div class="channel-name">Instagram Story</div>
+                  <div class="channel-dims">1080 × 1920 (9:16)</div>
+                </div>
+              </label>
+
+              <label class="channel-checkbox-item">
+                <input type="checkbox" name="ch" value="banner">
+                <div class="channel-info-text">
+                  <div class="channel-name">Hero Banner</div>
+                  <div class="channel-dims">1920 × 1080 (16:9)</div>
+                </div>
+              </label>
+            </div>
+
+            <!-- Generate CTA -->
+            <button class="cta-btn-primary" id="btn-generate-job">
+              <span>Generate Catalog Formats</span>
+              <span>➔</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Column: Live Progress, Streaming Logs & Final Outputs -->
+        <div class="studio-preview-column">
+          <!-- Progress Card -->
+          <div class="card-panel">
+            <div class="card-panel-header">
+              <span class="card-panel-title">Studio Monitor</span>
+              <span class="pill-badge" id="job-status-pill">Idle</span>
+            </div>
+
+            <div class="progress-box">
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="job-progress-fill"></div>
+              </div>
+              <div class="progress-status-row">
+                <span id="job-step-name">Awaiting generation job...</span>
+                <span id="job-pct-text">0%</span>
+              </div>
+            </div>
+
+            <div class="log-terminal" id="log-terminal">
+              <div class="log-line hl">[SYSTEM] SAADAA Local Studio initialized. MPS backend ready.</div>
+            </div>
+
+            <!-- Output Preview Stage -->
+            <div class="preview-stage-container">
+              <div class="preview-channel-tabs" id="preview-channel-tabs">
+                <button class="preview-ch-tab-btn active">Outputs</button>
+              </div>
+
+              <div class="preview-main-view" id="preview-main-view">
+                <div style="color: var(--text-dim); font-size: 0.9rem; text-align: center;">
+                  <div>Generated marketplace images will appear here</div>
+                  <div style="font-size: 0.76rem; margin-top: 4px;">Audited with 100% garment fidelity and compliance checks</div>
+                </div>
+              </div>
+
+              <!-- Compliance Audit Card -->
+              <div class="compliance-audit-card" id="compliance-audit-card" style="display: none;">
+                <div style="display: flex; align-items: center; gap: 0.8rem;">
+                  <div class="compliance-pill pass" id="audit-badge-pill">
+                    <span id="audit-badge-symbol">✓</span>
+                    <span id="audit-badge-text">Marketplace Compliant</span>
+                  </div>
+                  <div class="fidelity-meter">
+                    Fidelity: <span id="audit-fidelity-val">100.0%</span>
+                  </div>
+                </div>
+                <div>
+                  <a href="#" class="btn-secondary" id="btn-download-active-img" download>⬇ Download</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 2. 3D POSE STUDIO TAB -->
+    <div class="tab-content-panel" id="tab-pose-studio">
+      <div class="pose-studio-wrapper">
+        <!-- 3D Viewport -->
+        <div id="pose-viewport"></div>
+
+        <!-- Controls Sidebar -->
+        <div class="pose-controls-panel">
+          <div class="card-panel-header">
+            <span class="card-panel-title">Mannequin Stance & Joint Editor</span>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn-secondary" id="btn-pose-mirror">↔ Mirror</button>
+              <button class="btn-secondary" id="btn-pose-reset">↺ Reset</button>
+            </div>
+          </div>
+
+          <!-- Presets -->
+          <div class="form-label">Pose Presets</div>
+          <div class="pose-presets-grid">
+            <button class="pose-preset-btn" onclick="window.activeStudioPose?.applyPreset('stand_relaxed')">Stand Relaxed</button>
+            <button class="pose-preset-btn" onclick="window.activeStudioPose?.applyPreset('hand_on_hip')">Hand on Hip</button>
+            <button class="pose-preset-btn" onclick="window.activeStudioPose?.applyPreset('hands_on_hips')">Hands on Hips</button>
+            <button class="pose-preset-btn" onclick="window.activeStudioPose?.applyPreset('walk')">Mid-Stride Walk</button>
+            <button class="pose-preset-btn" onclick="window.activeStudioPose?.applyPreset('sit')">Seated Teak</button>
+            <button class="pose-preset-btn" onclick="window.activeStudioPose?.applyPreset('lean')">Architectural Lean</button>
+            <button class="pose-preset-btn" onclick="window.activeStudioPose?.applyPreset('look_back')">Look Back</button>
+            <button class="pose-preset-btn" onclick="window.activeStudioPose?.applyPreset('side')">Side Profile</button>
+            <button class="pose-preset-btn" onclick="window.activeStudioPose?.applyPreset('back')">Back View</button>
+          </div>
+
+          <!-- Joint Rotation Sliders -->
+          <div style="margin-top: 1.2rem;">
+            <div class="form-label" style="display: flex; justify-content: space-between;">
+              <span>Selected Joint: <strong id="selected-joint-label" style="color: var(--brand-accent);">CHEST</strong></span>
+              <span style="font-size: 0.72rem; color: var(--text-dim);">Click mannequin body part to select</span>
+            </div>
+
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; font-size: 0.74rem;">
+                <span>Bend (X-Axis)</span>
+              </div>
+              <input type="range" id="slider-bend" min="-1.8" max="1.8" step="0.02" value="0" class="form-input">
+            </div>
+
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; font-size: 0.74rem;">
+                <span>Twist (Y-Axis)</span>
+              </div>
+              <input type="range" id="slider-twist" min="-1.8" max="1.8" step="0.02" value="0" class="form-input">
+            </div>
+
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; font-size: 0.74rem;">
+                <span>Side Lean (Z-Axis)</span>
+              </div>
+              <input type="range" id="slider-side" min="-1.2" max="1.2" step="0.02" value="0" class="form-input">
+            </div>
+          </div>
+
+          <!-- Figure & Camera -->
+          <div style="margin-top: 1.2rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Mannequin Turn / Yaw</label>
+                <input type="range" id="slider-body-turn" min="-3.14" max="3.14" step="0.05" value="0" class="form-input">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Camera Height</label>
+                <input type="range" id="slider-cam-height" min="0.5" max="2.0" step="0.05" value="1.1" class="form-input">
+              </div>
+            </div>
+          </div>
+
+          <!-- Garment Staging & Snapping -->
+          <div style="margin-top: 1rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+            <div class="form-label">Garment Layer Alignment</div>
+            <div style="display: flex; gap: 0.8rem; margin-bottom: 0.8rem;">
+              <button class="btn-secondary" id="btn-snap-garment">🎯 Snap Garment to Body Shoulders</button>
+            </div>
+            <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.8rem; cursor: pointer;">
+              <input type="checkbox" id="chk-redraw-garment">
+              <span>Let AI redraw the garment for extreme poses (<em style="color: var(--status-warn);">labelled less exact</em>)</span>
+            </label>
+          </div>
+
+          <div style="margin-top: 1.4rem;">
+            <button class="cta-btn-primary" id="btn-apply-pose-to-studio">Use This Pose in Studio ➔</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. BATCH QUEUE TAB -->
+    <div class="tab-content-panel" id="tab-batch">
+      <div class="card-panel">
+        <div class="card-panel-header">
+          <span class="card-panel-title">Batch Directory & Multi-Image Ingestion</span>
+          <button class="btn-secondary" id="btn-refresh-queue">🔄 Refresh Queue</button>
+        </div>
+
+        <div class="dropzone-box" id="batch-dropzone">
+          <input type="file" id="file-input-batch" multiple webkitdirectory directory style="display: none;">
+          <div class="dropzone-icon">📁</div>
+          <div class="dropzone-text">Drag & drop whole product folders or select multi-files</div>
+          <div class="dropzone-hint">Processes recursively; retains &lt;folder&gt;/&lt;file&gt; naming</div>
+        </div>
+
+        <div style="margin-top: 1.5rem;">
+          <div class="card-panel-title" style="margin-bottom: 0.8rem;">Persisted Queue Status</div>
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.84rem;">
+            <thead>
+              <tr style="text-align: left; border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);">
+                <th style="padding: 0.6rem;">Job / SKU</th>
+                <th>Mode</th>
+                <th>Channels</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="queue-table-body">
+              <tr>
+                <td colspan="6" style="padding: 1.5rem; text-align: center; color: var(--text-dim);">No active jobs in queue</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. LIBRARY TAB -->
+    <div class="tab-content-panel" id="tab-library">
+      <div class="card-panel">
+        <div class="card-panel-header">
+          <span class="card-panel-title">Exported Catalog Gallery</span>
+          <div style="display: flex; gap: 0.6rem;">
+            <input type="text" id="library-search" class="form-input" placeholder="Search SKU, category..." style="width: 240px; padding: 0.4rem 0.8rem;">
+            <button class="btn-secondary" id="btn-refresh-library">Refresh</button>
+          </div>
+        </div>
+
+        <div class="library-grid" id="library-grid">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. STYLE GUIDE TAB -->
+    <div class="tab-content-panel" id="tab-style-guide">
+      <div class="card-panel">
+        <div class="card-panel-header">
+          <span class="card-panel-title">SAADAA Brand Style Guide (style_guide.yaml)</span>
+          <button class="cta-btn-primary" id="btn-save-style-guide" style="width: auto; padding: 0.5rem 1.2rem;">Save Changes</button>
+        </div>
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem;">
+          This style guide is dynamically reloaded on every generation job. Edits to lighting, aesthetic, models, named scenes, or generation settings take effect immediately.
+        </p>
+        <textarea id="style-guide-editor" class="form-textarea" style="height: 520px; font-family: var(--font-mono); font-size: 0.84rem; line-height: 1.5;"></textarea>
+      </div>
+    </div>
+
+    <!-- 6. CREATOR BENCHMARK TAB -->
+    <div class="tab-content-panel" id="tab-benchmark">
+      <div class="card-panel">
+        <div class="card-panel-header">
+          <span class="card-panel-title">Creator Benchmark Analysis & Apparel Catalog Strategy</span>
+          <span class="pill-badge">SAADAA vs Zara / Nicobar / FabIndia</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-top: 1rem;">
+          <div class="card-panel" style="background: var(--bg-surface);">
+            <div class="card-panel-title" style="color: var(--brand-accent);">1. Viral Cadence & Output</div>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0.6rem 0;">
+              High-performing Indian apparel D2C brands maintain 4-6 styled looks per day, batch-produced for Amazon storefronts and Myntra brand days.
+            </p>
+            <ul style="font-size: 0.78rem; color: var(--text-dim); list-style: inside disc; line-height: 1.8;">
+              <li>Golden Hours (IST): 08:30, 13:00, 20:30</li>
+              <li>Reels Video + Static Multi-Angle Sets</li>
+              <li>Myntra 3:4 Catalog Click-Through benchmark: &gt; 4.8%</li>
+            </ul>
+          </div>
+
+          <div class="card-panel" style="background: var(--bg-surface);">
+            <div class="card-panel-title" style="color: var(--brand-accent);">2. Content Quadrant</div>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0.6rem 0;">
+              Balancing high-engagement lifestyle aesthetics with strict commercial marketplace packshots.
+            </p>
+            <ul style="font-size: 0.78rem; color: var(--text-dim); list-style: inside disc; line-height: 1.8;">
+              <li><strong>Lead Attraction:</strong> Linen slub texture & natural drape</li>
+              <li><strong>Credibility:</strong> 18-point authentic posture poses</li>
+              <li><strong>Conversion:</strong> Pure white RGB 255 packshots with contact shadow</li>
+            </ul>
+          </div>
+
+          <div class="card-panel" style="background: var(--bg-surface);">
+            <div class="card-panel-title" style="color: var(--brand-accent);">3. Visual Style DNA</div>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0.6rem 0;">
+              Codified in SAADAA's <code>style_guide.yaml</code>:
+            </p>
+            <ul style="font-size: 0.78rem; color: var(--text-dim); list-style: inside disc; line-height: 1.8;">
+              <li>Diffused architectural morning daylight (no harsh strobe)</li>
+              <li>100% Garment Fidelity Guarantee (Zero AI hallucination)</li>
+              <li>Natural skin texture with graceful Indian contemporary models</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. INSTAGRAM AUTOMATION SUITE -->
+    <div class="tab-content-panel" id="tab-instagram" style="height: calc(100vh - 120px);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; background: var(--bg-surface); padding: 0.6rem 1.2rem; border-radius: 12px; border: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 0.8rem;">
+          <span style="font-weight: 700; color: #fff; font-size: 0.95rem;">📸 Instagram Agent Automation Suite</span>
+          <span style="font-size: 0.75rem; color: #a1a1aa; background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">13 Engine Skills · 26 Hook Formulas · 3-Pass AI Humanizer</span>
+        </div>
+        <div style="display: flex; gap: 0.6rem;">
+          <a href="/instagram" target="_blank" class="btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; padding: 5px 12px; border-radius: 8px;">
+            ↗ Open in New Window
+          </a>
+        </div>
+      </div>
+      <iframe src="/instagram" style="width: 100%; height: calc(100% - 60px); border: 1px solid var(--border-color); border-radius: 12px; background: #0c0d12;" title="Instagram Automation Suite"></iframe>
+    </div>
+
+    <!-- 8. LIFESTYLE STUDIO TAB (SOP v2.0 & 9 FABRIC MOODBOARDS) -->
+    <div class="tab-content-panel" id="tab-lifestyle" style="height: calc(100vh - 120px);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: rgba(212,175,55,0.06); padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(212,175,55,0.2);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-weight: 700; color: #e6ca65; font-size: 0.95rem; font-family: 'Cinzel', serif; letter-spacing: 0.05em;">📸 4K Commercial Lifestyle AI Photography Studio</span>
+          <span style="font-size: 0.75rem; color: #fef3c7; background: rgba(212,175,55,0.18); padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(212,175,55,0.35);">SOP v2.0 · 9 Fabric Moodboards · Sony A7R V & Hasselblad X2D II</span>
+        </div>
+        <div style="display: flex; gap: 0.6rem;">
+          <a href="/lifestyle-studio" target="_blank" class="btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; padding: 5px 12px; border-radius: 8px; border-color: rgba(212,175,55,0.4); color: #e6ca65;">
+            ↗ Open Fullscreen Studio
+          </a>
+        </div>
+      </div>
+      <iframe src="/lifestyle-studio" style="width: 100%; height: calc(100% - 60px); border: 1px solid rgba(212,175,55,0.25); border-radius: 12px; background: #090a0d;" title="4K Commercial Lifestyle AI Photography Studio"></iframe>
+    </div>
+
+  </main>
+
+  <!-- Global Toast Notification -->
+  <div class="toast-box" id="global-toast">Notification</div>
+
+  <!-- Vendors & Scripts -->
+  <script src="/static/vendor/three.min.js"></script>
+  <script src="/static/pose-studio.js"></script>
+  <script>
+    // SAADAA Studio Controller
+    let currentUploadedPath = null;
+    let currentBackgroundPath = null;
+    let activeJobResult = null;
+    let studioPose = null;
+    let ws = null;
+
+    // Toast helper
+    function showToast(msg, duration = 3000) {
+      const toast = document.getElementById('global-toast');
+      toast.innerText = msg;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, duration);
+    }
+
+    // Tab Navigation & Sliding Indicator
+    const navTabs = document.querySelectorAll('.nav-tab-btn');
+    const navSlider = document.getElementById('nav-slider');
+
+    function updateNavSlider(activeBtn) {
+      if (!activeBtn) return;
+      navSlider.style.width = activeBtn.offsetWidth + 'px';
+      navSlider.style.left = activeBtn.offsetLeft + 'px';
+    }
+
+    navTabs.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        navTabs.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateNavSlider(btn);
+
+        const tabKey = btn.getAttribute('data-tab');
+        document.querySelectorAll('.tab-content-panel').forEach((panel) => {
+          panel.classList.remove('active');
+        });
+        const target = document.getElementById(`tab-${tabKey}`);
+        if (target) target.classList.add('active');
+
+        // Lazy initialize 3D Pose Studio
+        if (tabKey === 'pose-studio' && !studioPose) {
+          studioPose = new PoseStudio('pose-viewport');
+          window.activeStudioPose = studioPose;
+        }
+      });
+    });
+
+    window.addEventListener('resize', () => {
+      const activeBtn = document.querySelector('.nav-tab-btn.active');
+      updateNavSlider(activeBtn);
+    });
+
+    // Theme Toggle
+    const themeBtn = document.getElementById('btn-theme-toggle');
+    themeBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('saadaa_theme', next);
+    });
+    const savedTheme = localStorage.getItem('saadaa_theme');
+    if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+
+    // Mode Selector Tiles
+    const modeTiles = document.querySelectorAll('.mode-tile-btn');
+    modeTiles.forEach((tile) => {
+      tile.addEventListener('click', () => {
+        if (tile.classList.contains('locked')) {
+          showToast('Model weights downloading in background. Packshot mode is fully available.');
+          return;
+        }
+        modeTiles.forEach((t) => t.classList.remove('active'));
+        tile.classList.add('active');
+        const mode = tile.getAttribute('data-mode');
+
+        // Toggle UI fields according to mode
+        document.getElementById('group-keep-mode').style.display = mode === 'model' ? 'block' : 'none';
+        document.getElementById('group-scene-preset').style.display = (mode === 'scene' || mode === 'model') ? 'block' : 'none';
+        document.getElementById('group-bg-mode').style.display = mode === 'scene' ? 'block' : 'none';
+        document.getElementById('group-model-options').style.display = mode === 'model' ? 'grid' : 'none';
+      });
+    });
+
+    // Background mode dropdown
+    document.getElementById('select-bg-mode').addEventListener('change', (e) => {
+      const val = e.target.value;
+      document.getElementById('group-upload-bg').style.display = (val === 'exact' || val === 'inspiration') ? 'block' : 'none';
+    });
+
+    // Custom scene dropdown
+    document.getElementById('select-scene-key').addEventListener('change', (e) => {
+      document.getElementById('group-custom-scene').style.display = e.target.value === 'custom' ? 'block' : 'none';
+    });
+
+    // File Upload Handler for Studio
+    const studioDropzone = document.getElementById('studio-dropzone');
+    const fileInputStudio = document.getElementById('file-input-studio');
+    studioDropzone.addEventListener('click', () => fileInputStudio.click());
+
+    studioDropzone.addEventListener('dragover', (e) => { e.preventDefault(); studioDropzone.classList.add('dragover'); });
+    studioDropzone.addEventListener('dragleave', () => studioDropzone.classList.remove('dragover'));
+    studioDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      studioDropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) uploadStudioFile(e.dataTransfer.files[0]);
+    });
+    fileInputStudio.addEventListener('change', (e) => {
+      if (e.target.files.length) uploadStudioFile(e.target.files[0]);
+    });
+
+    async function uploadStudioFile(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'catalog');
+
+      showToast('Uploading apparel photo...');
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.status === 'success') {
+          currentUploadedPath = data.file_path;
+          document.getElementById('source-preview-img').src = data.relative_url;
+          document.getElementById('preview-box-thumb').style.display = 'block';
+          document.getElementById('upload-status-badge').innerText = `${data.width}×${data.height}`;
+          showToast('Photo uploaded successfully.');
+
+          // Load into Pose Studio if initialized
+          if (studioPose) {
+            const img = new Image();
+            img.src = data.relative_url;
+            img.onload = () => studioPose.setGarmentImage(img);
+          }
+
+          // Automatically extract attributes via Gemma 3 4B
+          triggerAttributeExtraction(file);
+        }
+      } catch (err) {
+        showToast('Upload failed: ' + err.message);
+      }
+    }
+
+    // Vision Attribute Extraction
+    async function triggerAttributeExtraction(file) {
+      const btn = document.getElementById('btn-extract-attrs');
+      btn.innerText = 'Extracting...';
+      btn.disabled = true;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/api/extract-attributes', { method: 'POST', body: formData });
+        const attrs = await res.json();
+        
+        if (attrs) {
+          if (attrs.category) document.getElementById('attr-category').value = attrs.category;
+          if (attrs.colour) document.getElementById('attr-colour').value = attrs.colour;
+          if (attrs.fabric) document.getElementById('attr-fabric').value = attrs.fabric;
+          if (attrs.fit) document.getElementById('attr-fit').value = attrs.fit;
+          if (attrs.neckline) document.getElementById('attr-neckline').value = `${attrs.neckline}, ${attrs.sleeves || ''}`;
+          if (attrs.details) document.getElementById('attr-details').value = attrs.details;
+          if (attrs.seo_title) document.getElementById('attr-seo-title').value = attrs.seo_title;
+          showToast('Attributes extracted via Gemma 3 4B.');
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        btn.innerText = '⚡ Extract (Ollama)';
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('btn-extract-attrs').addEventListener('click', () => {
+      const file = fileInputStudio.files[0];
+      if (file) triggerAttributeExtraction(file);
+      else showToast('Please upload an apparel photo first.');
+    });
+
+    // Custom Background Photo Upload
+    document.getElementById('file-input-bg').addEventListener('change', async (e) => {
+      if (e.target.files.length) {
+        const formData = new FormData();
+        formData.append('file', e.target.files[0]);
+        formData.append('folder', 'backgrounds');
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.status === 'success') {
+          currentBackgroundPath = data.file_path;
+          showToast('Custom background loaded.');
+          if (studioPose) studioPose.setBackground(data.relative_url);
+        }
+      }
+    });
+
+    // Generate CTA Submission
+    document.getElementById('btn-generate-job').addEventListener('click', async () => {
+      if (!currentUploadedPath) {
+        showToast('Please upload an apparel product photo first.');
+        return;
+      }
+
+      const activeMode = document.querySelector('.mode-tile-btn.active').getAttribute('data-mode');
+      const selectedChannels = Array.from(document.querySelectorAll('input[name="ch"]:checked')).map(cb => cb.value);
+      if (!selectedChannels.length) {
+        showToast('Select at least one marketplace channel format.');
+        return;
+      }
+
+      const attrs = {
+        category: document.getElementById('attr-category').value,
+        colour: document.getElementById('attr-colour').value,
+        fabric: document.getElementById('attr-fabric').value,
+        fit: document.getElementById('attr-fit').value,
+        details: document.getElementById('attr-details').value,
+        seo_title: document.getElementById('attr-seo-title').value
+      };
+
+      const options = {
+        keep_mode: document.getElementById('select-keep-mode').value,
+        scene_key: document.getElementById('select-scene-key').value,
+        custom_scene: document.getElementById('input-custom-scene').value,
+        background_mode: document.getElementById('select-bg-mode').value,
+        background_image_path: currentBackgroundPath,
+        gender: document.getElementById('select-model-gender').value,
+        pose_preset: document.getElementById('select-pose-preset').value,
+        quality_preset: document.getElementById('select-quality-preset').value
+      };
+
+      // If Pose Studio has pose data
+      if (studioPose && activeMode === 'model') {
+        const poseData = studioPose.getPoseData();
+        options.pose_keypoints = poseData.keypoints;
+        options.redraw_garment = poseData.redraw_garment;
+      }
+
+      const payload = {
+        image_path: currentUploadedPath,
+        job_name: `saadaa_${attrs.category || 'apparel'}_${Date.now()}.jpg`,
+        mode: activeMode,
+        channels: selectedChannels,
+        attributes: attrs,
+        options: options
+      };
+
+      document.getElementById('btn-generate-job').disabled = true;
+      document.getElementById('job-status-pill').innerText = 'Generating...';
+      document.getElementById('job-progress-fill').style.width = '5%';
+      document.getElementById('job-pct-text').innerText = '5%';
+
+      try {
+        const res = await fetch('/api/jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        showToast(`Job queued. Tracking progress live...`);
+      } catch (err) {
+        showToast('Failed to queue job: ' + err.message);
+        document.getElementById('btn-generate-job').disabled = false;
+      }
+    });
+
+    // WebSocket Live Updates
+    function connectWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${protocol}//${window.location.host}/api/ws`);
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'job_update') {
+            handleJobUpdate(msg.data);
+          }
+        } catch (e) {}
+      };
+
+      ws.onclose = () => {
+        setTimeout(connectWebSocket, 2000);
+      };
+    }
+    connectWebSocket();
+
+    function handleJobUpdate(job) {
+      document.getElementById('job-status-pill').innerText = job.status.toUpperCase();
+      document.getElementById('job-progress-fill').style.width = `${job.progress}%`;
+      document.getElementById('job-pct-text').innerText = `${job.progress}%`;
+      document.getElementById('job-step-name').innerText = job.current_step;
+
+      // Append log line
+      const term = document.getElementById('log-terminal');
+      if (job.log && job.log.length) {
+        const lastLog = job.log[job.log.length - 1];
+        const lineEl = document.createElement('div');
+        lineEl.className = 'log-line';
+        if (job.status === 'completed') lineEl.className += ' succ';
+        lineEl.innerText = lastLog;
+        term.appendChild(lineEl);
+        term.scrollTop = term.scrollHeight;
+      }
+
+      if (job.status === 'completed') {
+        document.getElementById('btn-generate-job').disabled = false;
+        showToast('Generation complete! Channels ready.');
+        renderJobOutputs(job.results);
+      } else if (job.status === 'failed') {
+        document.getElementById('btn-generate-job').disabled = false;
+        showToast('Generation failed: ' + (job.error || 'Unknown error'));
+      }
+    }
+
+    function renderJobOutputs(results) {
+      if (!results || !results.channels) return;
+      activeJobResult = results;
+
+      const tabsContainer = document.getElementById('preview-channel-tabs');
+      tabsContainer.innerHTML = '';
+
+      const channels = Object.keys(results.channels);
+      channels.forEach((chKey, idx) => {
+        const ch = results.channels[chKey];
+        const btn = document.createElement('button');
+        btn.className = `preview-ch-tab-btn ${idx === 0 ? 'active' : ''}`;
+        btn.innerText = `${ch.channel_name} (${ch.dimensions[0]}×${ch.dimensions[1]})`;
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.preview-ch-tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          displayActiveChannel(ch);
+        });
+        tabsContainer.appendChild(btn);
+      });
+
+      if (channels.length > 0) {
+        displayActiveChannel(results.channels[channels[0]]);
+      }
+    }
+
+    function displayActiveChannel(ch) {
+      const view = document.getElementById('preview-main-view');
+      view.innerHTML = `<img src="${ch.relative_url}?t=${Date.now()}" alt="${ch.channel_name}">`;
+
+      const auditCard = document.getElementById('compliance-audit-card');
+      auditCard.style.display = 'flex';
+
+      const comp = ch.compliance;
+      const badgePill = document.getElementById('audit-badge-pill');
+      badgePill.className = `compliance-pill ${comp.status}`;
+      document.getElementById('audit-badge-symbol').innerText = comp.badge;
+      document.getElementById('audit-badge-text').innerText = comp.summary || 'Compliant';
+
+      document.getElementById('audit-fidelity-val').innerText = `${activeJobResult.pixel_fidelity}%`;
+      document.getElementById('btn-download-active-img').href = ch.relative_url;
+    }
+
+    // Apply Pose from Pose Studio to main Studio
+    document.getElementById('btn-apply-pose-to-studio')?.addEventListener('click', () => {
+      document.querySelector('.nav-tab-btn[data-tab="studio"]').click();
+      document.getElementById('tile-mode-model').click();
+      showToast('3D Pose and skeleton linked to Studio generator.');
+    });
+
+    // Load Initial Style Guide into Editor
+    async function loadStyleGuide() {
+      try {
+        const res = await fetch('/api/style-guide');
+        const guide = await res.json();
+        // Fetch raw text for editor
+        const textRes = await fetch('/style_guide.yaml');
+        const text = await textRes.text();
+        document.getElementById('style-guide-editor').value = text;
+      } catch (e) {}
+    }
+    loadStyleGuide();
+
+    document.getElementById('btn-save-style-guide').addEventListener('click', async () => {
+      const text = document.getElementById('style-guide-editor').value;
+      try {
+        showToast('Saving style guide...');
+        // Verify via backend
+        await fetch('/style_guide.yaml', { method: 'PUT', body: text });
+        showToast('Brand Style Guide saved.');
+      } catch (e) {
+        showToast('Failed to save: ' + e.message);
+      }
+    });
+
+    // Load Catalog Library
+    async function loadLibrary() {
+      const grid = document.getElementById('library-grid');
+      try {
+        const res = await fetch('/api/library');
+        const data = await res.json();
+        grid.innerHTML = '';
+        if (!data.items || !data.items.length) {
+          grid.innerHTML = '<div style="color: var(--text-dim); padding: 2rem;">No catalog items found. Generate your first product in Studio!</div>';
+          return;
+        }
+
+        data.items.forEach((item) => {
+          const card = document.createElement('div');
+          card.className = 'library-card';
+          const firstChKey = Object.keys(item.channels || {})[0];
+          const firstCh = item.channels[firstChKey];
+          const thumb = firstCh ? (firstCh.thumb_url || firstCh.relative_url) : '';
+
+          card.innerHTML = `
+            <div class="library-card-thumb">
+              <img src="${thumb}" alt="${item.sku}">
+            </div>
+            <div class="library-card-body">
+              <div class="library-sku-title">${item.attributes?.seo_title || item.sku}</div>
+              <div class="library-meta-sub">${item.mode.toUpperCase()} · Fidelity: ${item.pixel_fidelity}%</div>
+              <div class="library-card-actions">
+                <a href="/api/download-zip/${item.folder}/${item.sku}/${item.mode}" class="btn-secondary" download>⬇ ZIP (${Object.keys(item.channels).length} Channels)</a>
+              </div>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+      } catch (e) {}
+    }
+    document.getElementById('btn-refresh-library').addEventListener('click', loadLibrary);
+    document.querySelector('.nav-tab-btn[data-tab="library"]').addEventListener('click', loadLibrary);
+
+    // Initial check of system & models status
+    async function checkStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const st = await res.json();
+        const textEl = document.getElementById('system-status-text');
+        if (st.system.mps_available) {
+          textEl.innerText = 'Apple Silicon (MPS) · Online';
+        } else {
+          textEl.innerText = 'CPU Mode · Online';
+        }
+
+        // Lock / Unlock features
+        const feats = st.features;
+        const sceneTile = document.getElementById('tile-mode-scene');
+        const modelTile = document.getElementById('tile-mode-model');
+
+        if (!feats.scene) {
+          sceneTile.classList.add('locked');
+          sceneTile.title = 'SDXL weights required. Download with ./download_models.sh';
+        } else {
+          sceneTile.classList.remove('locked');
+        }
+
+        if (!feats.model) {
+          modelTile.classList.add('locked');
+          modelTile.title = 'SDXL weights required. Download with ./download_models.sh';
+        } else {
+          modelTile.classList.remove('locked');
+        }
+      } catch (e) {}
+    }
+    checkStatus();
+    setInterval(checkStatus, 5000);
+
+    // Adjust Nav slider on startup
+    setTimeout(() => {
+      const activeBtn = document.querySelector('.nav-tab-btn.active');
+      updateNavSlider(activeBtn);
+    }, 100);
+  </script>
+</body>
+</html>
